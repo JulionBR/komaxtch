@@ -81,3 +81,17 @@ def test_coarse_ai_boxes_are_refined_at_the_gutters(manga_page):
     detection = FallbackPanelDetector([FixedDetector("local", 0.1), coarse], refiner=OpenCvPanelDetector()).detect(manga_page)
     assert detection.source == "cloud"
     assert sorted(names_in_order(detection.panels)) == ["left_lower", "left_upper"]
+
+
+def test_cleaner_merges_overlaps_and_absorbs_thin_strips():
+    from komaxtch.detect.cleanup import PanelCleaner
+
+    page = BoundingBox(0, 0, 900, 1200)
+    boxes = [
+        BoundingBox(0, 0, 800, 500),
+        BoundingBox(0, 400, 800, 900),  # sobrepõe a primeira em 20%: fica separada
+        BoundingBox(0, 700, 400, 1200),  # 40% dentro da segunda: junta
+        BoundingBox(850, 0, 860, 1200),  # tira fina fora dos quadros: absorvida
+    ]
+    cleaned = PanelCleaner(page).clean(boxes)
+    assert len(cleaned) == 2 and all(b.width >= 80 and b.height >= 120 for b in cleaned)

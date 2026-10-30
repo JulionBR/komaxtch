@@ -8,6 +8,7 @@ from enum import Enum
 
 from PIL import Image
 
+from komaxtch.detect.cleanup import PanelCleaner
 from komaxtch.detect.base import BubbleDetector, PanelDetection, PanelDetector
 from komaxtch.devices import DeviceProfile
 from komaxtch.geometry import BoundingBox
@@ -106,7 +107,8 @@ class PanelLayout(LayoutStrategy):
     def panel_boxes(self, page: Page) -> list[BoundingBox]:
         detection = self._detector.detect(page)
         self.last_detection = detection
-        boxes = self._sorter.sort(list(detection.panels))
+        cleaned = PanelCleaner(page.bounds).clean(list(detection.panels))
+        boxes = self._sorter.sort(cleaned)
         margin = round(PANEL_MARGIN_RATIO * max(page.image.size))
         return [box.expand(margin).clamp(page.bounds) for box in boxes]
 
