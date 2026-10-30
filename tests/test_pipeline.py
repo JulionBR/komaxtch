@@ -19,7 +19,7 @@ from komaxtch.reading_order import ReadingOrderSorter
 from komaxtch.xtch.reader import XtchReader
 
 X3 = get_device("x3")
-SETTINGS = ConversionSettings(device=X3, use_local_ai=False, use_cloud=False)
+SETTINGS = ConversionSettings(device=X3, mode=LayoutMode.PANEL, use_local_ai=False, use_cloud=False)
 
 
 def test_epub_follows_spine_and_reads_direction(manga_epub):
@@ -70,6 +70,35 @@ def test_bubble_layout_zooms_only_small_bubbles(manga_page):
     assert kinds.count("panel") == 5
     assert kinds.count("bubble") == 1
     assert kinds[:2] == ["panel", "bubble"]  # o zoom vem logo depois do seu quadro
+
+
+def test_auto_layout_zooms_bubbles_only_on_shrunken_panels():
+    from komaxtch.detect.base import PanelDetection, PanelDetector
+
+    class WholePage(PanelDetector):
+        name = "whole"
+
+        def detect(self, page):
+            return PanelDetection((page.bounds,), 1.0, self.name)
+
+    class CountingBubbles(FakeBubbles):
+        calls = 0
+
+        def detect(self, page):
+            self.calls += 1
+            return super().detect(page)
+
+    direction = ReadingDirection.RIGHT_TO_LEFT
+    bubble = BoundingBox(100, 100, 220, 200)
+    bubbles = CountingBubbles([bubble])
+    layout = BubbleLayout(
+        PanelLayout(WholePage(), ReadingOrderSorter(direction)), bubbles, ScreenComposer(X3), direction, 0.6
+    )
+    splash = Page(1, Image.new("L", (1107, 1680), 200))  # página inteira: aparece a 47%
+    assert [c.kind for c in layout.crops(splash)] == ["panel", "bubble"]
+    small = Page(2, Image.new("L", (500, 700), 200))  # cabe quase sem reduzir
+    assert [c.kind for c in layout.crops(small)] == ["panel"]
+    assert bubbles.calls == 1  # nem procura balões onde não vai dar zoom
 
 
 def test_convert_epub_end_to_end(manga_epub, tmp_path):

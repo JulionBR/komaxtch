@@ -28,6 +28,10 @@ TRANSIENT_BACKOFF_SECONDS = (5.0, 15.0)
 UPLOAD_MAX_SIDE_PX = 1024
 UPLOAD_JPEG_QUALITY = 85
 NORMALIZED_SCALE = 1000  # os modelos devolvem coordenadas relativas de 0 a 1000
+MIN_BOX_SIDE_RATIO = 0.08  # caixas mais finas que isso são lixo da resposta (tiras de 3%)
+DUPLICATE_OVERLAP_RATIO = 0.7  # caixa quase toda dentro de outra maior: repetida
+MESSY_OVERLAP_RATIO = 0.3  # se ainda sobram caixas se cobrindo assim, a resposta é confusa
+MESSY_CONFIDENCE = 0.4  # abaixo do limite: a cadeia prefere o palpite local
 
 PROMPT = """You will receive {count} page(s) of a {kind} (read {order}), numbered 1 to {count} in the order given.
 For each page, detect every comic panel. A panel is a framed region of artwork; if a page is a
@@ -142,7 +146,7 @@ class VisionPanelDetector(PanelDetector):
         if boxes is None:
             self.prefetch([page])
             boxes = self._cached(page)
-        return self._failure() if boxes is None else self._detection(boxes)
+        return self._failure() if boxes is None else self._detection(boxes, page)
 
     def prefetch(self, pages: list[Page]) -> None:
         pending = list({p.fingerprint: p for p in pages if self._cached(p) is None}.values())
@@ -192,13 +196,36 @@ class VisionPanelDetector(PanelDetector):
             return PROMPT.format(count=count, kind="Japanese manga", order="right to left")
         return PROMPT.format(count=count, kind="comic book", order="left to right")
 
-    def _detection(self, boxes: list[BoundingBox]) -> PanelDetection:
+    def _detection(self, raw_boxes: list[BoundingBox], page: Page) -> PanelDetection:
         # A ordem devolvida pelos modelos não é confiável; o ReadingOrderSorter decide.
-        confidence = FULL_CONFIDENCE if boxes else NO_CONFIDENCE
+        boxes = _without_junk(raw_boxes, page)
+        if not boxes:
+            return self._failure()
+        confidence = MESSY_CONFIDENCE if _overlapping(boxes) else FULL_CONFIDENCE
         return PanelDetection(tuple(boxes), confidence, self.name)
 
     def _failure(self) -> PanelDetection:
         return PanelDetection((), NO_CONFIDENCE, self.name)
+
+
+def _without_junk(boxes: list[BoundingBox], page: Page) -> list[BoundingBox]:
+    """Tira das respostas da IA as tiras finas e as caixas repetidas dentro de outra maior."""
+    width, height = page.image.size
+    usable = [b for b in boxes if b.width >= MIN_BOX_SIDE_RATIO * width and b.height >= MIN_BOX_SIDE_RATIO * height]
+    kept: list[BoundingBox] = []
+    for box in sorted(usable, key=lambda b: b.area, reverse=True):
+        if not any(box.overlap_ratio(bigger) >= DUPLICATE_OVERLAP_RATIO for bigger in kept):
+            kept.append(box)
+    return kept
+
+
+def _overlapping(boxes: list[BoundingBox]) -> bool:
+    """Alguma caixa tem boa parte coberta por outra?"""
+    return any(
+        max(a.overlap_ratio(b), b.overlap_ratio(a)) >= MESSY_OVERLAP_RATIO
+        for i, a in enumerate(boxes)
+        for b in boxes[i + 1 :]
+    )
 
 
 def parse_batch(answer: str, pages: list[Page]) -> list[list[BoundingBox]]:

@@ -163,3 +163,17 @@ def test_chain_sends_only_unsure_pages_to_the_ai():
     cloud = CountingDetector("cloud", confident_pages={2, 4})
     FallbackPanelDetector([local, cloud]).prefetch([page(n) for n in (1, 2, 3, 4)])
     assert cloud.prefetched == [2, 4]
+
+
+def test_junk_boxes_from_the_ai_are_dropped(tmp_path):
+    # página 800x1200: tira de 3% de largura, caixa repetida dentro da grande e dois quadros bons
+    answer = batch_answer([[0, 0, 1000, 580], [580, 0, 610, 1000], [610, 0, 1000, 600], [0, 620, 500, 1000], [500, 620, 1000, 1000]])
+    detection = detector(FakeVision([answer]), tmp_path).detect(page(1))
+    assert detection.confidence == 1.0
+    assert sorted(b.as_tuple() for b in detection.panels) == [(0, 0, 800, 696), (0, 744, 400, 1200), (400, 744, 800, 1200)]
+
+
+def test_messy_overlapping_answer_is_not_trusted(tmp_path):
+    answer = batch_answer([[0, 0, 1000, 480], [480, 0, 1000, 730], [730, 0, 1000, 1000]])
+    detection = detector(FakeVision([answer]), tmp_path).detect(page(1))
+    assert len(detection.panels) == 2 and detection.confidence < 0.6  # a 3ª era repetida

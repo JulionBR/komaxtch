@@ -19,6 +19,8 @@ from komaxtch.detect.panels import OpenCvPanelDetector
 from komaxtch.devices import DeviceProfile
 from komaxtch.ingest import SourceFactory
 from komaxtch.layout import (
+    AUTO_ZOOM_BELOW_SCALE,
+    ZOOM_EVERY_PANEL,
     BubbleLayout,
     LayoutMode,
     LayoutStrategy,
@@ -46,7 +48,7 @@ StatusCallback = Callable[[str], None]
 @dataclass(frozen=True)
 class ConversionSettings:
     device: DeviceProfile
-    mode: LayoutMode = LayoutMode.PANEL
+    mode: LayoutMode = LayoutMode.AUTO
     direction: ReadingDirection | None = None  # None = usar o metadado do livro
     dithering: Dithering = Dithering.FLOYD
     rotation: Rotation = Rotation.CLOCKWISE
@@ -89,7 +91,8 @@ class LayoutFactory:
         panels = PanelLayout(self._panel_detector(direction), ReadingOrderSorter(direction))
         if mode is LayoutMode.PANEL:
             return panels
-        return BubbleLayout(panels, self._bubble_detector(), composer, direction)
+        zoom_below = AUTO_ZOOM_BELOW_SCALE if mode is LayoutMode.AUTO else ZOOM_EVERY_PANEL
+        return BubbleLayout(panels, self._bubble_detector(), composer, direction, zoom_below)
 
     def _panel_detector(self, direction: ReadingDirection) -> PanelDetector:
         vision: list[VisionPanelDetector] = []

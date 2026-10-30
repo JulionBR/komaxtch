@@ -116,7 +116,7 @@ class Cli:
     def _settings(args: argparse.Namespace) -> ConversionSettings:
         return ConversionSettings(
             device=get_device(args.device),
-            mode=LayoutMode(getattr(args, "mode", LayoutMode.PANEL.value)),
+            mode=LayoutMode(getattr(args, "mode", LayoutMode.AUTO.value)),
             direction=None if args.direction == AUTO else ReadingDirection(args.direction),
             dithering=Dithering(args.dither),
             rotation=Rotation(args.rotate),
@@ -171,7 +171,7 @@ class Cli:
         preview = commands.add_parser("preview", help="compara os modos em algumas páginas (PNG)")
         preview.add_argument("input", type=Path)
         preview.add_argument("--pages", default="1-5", help="ex.: 1-5,12")
-        preview.add_argument("--modes", default="page,panel,bubble")
+        preview.add_argument("--modes", default="panel,auto,bubble")
         preview.add_argument("-o", "--output", type=Path, default=Path("preview"))
         self._add_common(preview)
         preview.set_defaults(handler=self._preview)
@@ -193,8 +193,9 @@ class Cli:
     @staticmethod
     def _add_mode(parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
-            "--mode", choices=[m.value for m in LayoutMode], default=LayoutMode.PANEL.value,
-            help="page = página inteira, panel = um quadro por tela, bubble = quadro + zoom nos balões",
+            "--mode", choices=[m.value for m in LayoutMode], default=LayoutMode.AUTO.value,
+            help="auto = um quadro por tela e zoom nos balões quando o quadro fica pequeno; "
+            "panel = só quadros; bubble = zoom nos balões em todo quadro; page = página inteira",
         )
 
     @staticmethod

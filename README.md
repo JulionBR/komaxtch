@@ -28,8 +28,9 @@ Copie o `.xtch` para o cartão SD do leitor e abra pelo CrossPoint.
 
 | `--mode` | O que cada tela mostra |
 |---|---|
-| `panel` (padrão) | um quadro por tela |
-| `bubble` | o quadro e, em seguida, zoom nos balões que ficariam pequenos |
+| `auto` (padrão) | um quadro por tela; quando o quadro aparece muito reduzido (página inteira, splash), vem em seguida o zoom nos balões |
+| `panel` | só um quadro por tela |
+| `bubble` | o quadro e o zoom em todo balão que ficaria pequeno (mais telas) |
 | `page` | a página inteira |
 
 Para comparar os modos antes de converter um volume inteiro:
@@ -99,6 +100,11 @@ cache (`~/.cache/komaxtch`), então reconverter é rápido e não gasta cota.
 Os balões (modo `bubble`) são detectados localmente pelo YOLOv8
 [`ogkalu/comic-speech-bubble-detector-yolov8m`](https://huggingface.co/ogkalu/comic-speech-bubble-detector-yolov8m)
 (Apache-2.0). Os pesos são baixados na primeira execução.
+
+As respostas da IA são limpas antes de usar: tiras finas e caixas repetidas são descartadas e,
+se a resposta vier com caixas se cobrindo, a página fica com o palpite local (ou inteira, com
+zoom nos balões no modo `auto`). Um corte só acontece se os dois lados tiverem tamanho de quadro,
+para não picotar onomatopeias nem cortar balões.
 
 Para ver o que foi detectado:
 

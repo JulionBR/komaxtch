@@ -24,6 +24,7 @@ MAX_PANELS = 16
 CROWDED_CONFIDENCE = 0.3
 MAX_INK_OUTSIDE_RATIO = 0.2  # tinta fora dos quadros indica arte sem borda
 MAX_SPLIT_DEPTH = 5
+MIN_CUT_PART_RATIO = 0.12  # cada lado de um corte precisa de ao menos 12% da largura e da altura da página
 MERGED_CONFIDENCE = 0.4  # sobrou calha que não deu para cortar (ex.: balão cobrindo a borda)
 
 INNER_BORDER_LENGTH_RATIO = 0.3  # borda interna cobre ao menos 30% do lado da caixa
@@ -98,16 +99,16 @@ class OpenCvPanelDetector(PanelDetector):
         return kept
 
     def _split_merged(self, box: BoundingBox, ink: np.ndarray, depth: int) -> list[BoundingBox]:
-        """Quadros grudados (ex.: balão atravessando a calha) são cortados na calha interna."""
+        """Quadros grudados (ex.: balão atravessando a calha) são cortados na calha interna.
+        O corte só vale se os dois lados tiverem tamanho de quadro: assim letras de onomatopeia
+        e tiras finas não viram telas, e nenhum pedaço da página é descartado."""
         gutter = _find_inner_gutter(box, ink) if depth else None
         if gutter is None:
             return [box]
-        parts = []
-        for side in _sides_of(box, gutter):
-            tight = _ink_bounds(side, ink)
-            if tight is not None and _big_enough(tight, ink.shape[1], ink.shape[0]):
-                parts.extend(self._split_merged(tight, ink, depth - 1))
-        return parts or [box]
+        sides = [side for side in (_ink_bounds(s, ink) for s in _sides_of(box, gutter)) if side is not None]
+        if not all(_worth_cutting(side, ink) for side in sides):
+            return [box]
+        return [part for side in sides for part in self._split_merged(side, ink, depth - 1)]
 
     @staticmethod
     def _confidence(boxes: list[BoundingBox], ink: np.ndarray) -> float:
@@ -142,9 +143,17 @@ def _is_unsplit_merge(box: BoundingBox, ink: np.ndarray) -> bool:
     gutter = _find_inner_gutter(box, ink, min_border_coverage=0.0, clean_cut=False)
     if gutter is None:
         return False
-    page_height, page_width = ink.shape
     sides = (_ink_bounds(side, ink) for side in _sides_of(box, gutter))
-    return all(side is not None and _big_enough(side, page_width, page_height) for side in sides)
+    return all(side is not None and _worth_cutting(side, ink) for side in sides)
+
+
+def _worth_cutting(part: BoundingBox, ink: np.ndarray) -> bool:
+    page_height, page_width = ink.shape
+    return (
+        _big_enough(part, page_width, page_height)
+        and part.width >= MIN_CUT_PART_RATIO * page_width
+        and part.height >= MIN_CUT_PART_RATIO * page_height
+    )
 
 
 def _sides_of(box: BoundingBox, gutter: _Gutter) -> tuple[BoundingBox, BoundingBox]:

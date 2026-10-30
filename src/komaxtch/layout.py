@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from abc import ABC, abstractmethod
 from enum import Enum
 
@@ -19,9 +20,12 @@ ROTATION_GAIN = 1.25  # só gira se o quadro ficar pelo menos 25% maior
 MIN_BUBBLE_ON_SCREEN_PX = 170  # balão menor que isso na tela do quadro ganha uma tela de zoom
 BUBBLE_GROUP_GAP_RATIO = 0.04
 BACKGROUND = 255
+AUTO_ZOOM_BELOW_SCALE = 0.6  # modo auto: zoom só quando o quadro aparece com menos de 60% do tamanho
+ZOOM_EVERY_PANEL = math.inf
 
 
 class LayoutMode(Enum):
+    AUTO = "auto"
     PAGE = "page"
     PANEL = "panel"
     BUBBLE = "bubble"
@@ -108,7 +112,10 @@ class PanelLayout(LayoutStrategy):
 
 
 class BubbleLayout(LayoutStrategy):
-    """Cada quadro e, logo depois, telas de zoom nos balões que ficariam pequenos demais."""
+    """Cada quadro e, logo depois, telas de zoom nos balões que ficariam pequenos demais.
+
+    Com `zoom_below_scale`, o zoom só acontece em quadros mostrados muito reduzidos (página
+    inteira, splash); os demais seguem um por tela. Os balões só são procurados nessas páginas."""
 
     def __init__(
         self,
@@ -116,11 +123,13 @@ class BubbleLayout(LayoutStrategy):
         bubbles: BubbleDetector,
         composer: ScreenComposer,
         direction: ReadingDirection,
+        zoom_below_scale: float = ZOOM_EVERY_PANEL,
     ) -> None:
         self._panels = panels
         self._bubbles = bubbles
         self._composer = composer
         self._direction = direction
+        self._zoom_below_scale = zoom_below_scale
 
     @property
     def last_detection(self) -> PanelDetection | None:
@@ -130,11 +139,14 @@ class BubbleLayout(LayoutStrategy):
         self._panels.prefetch(pages)
 
     def crops(self, page: Page) -> list[Crop]:
-        bubbles = self._bubbles.detect(page)
+        panels = self._panels.panel_boxes(page)
+        shrunken = [p for p in panels if self._composer.display_scale(p) < self._zoom_below_scale]
+        bubbles = self._bubbles.detect(page) if shrunken else []
         crops: list[Crop] = []
-        for panel in self._panels.panel_boxes(page):
+        for panel in panels:
             crops.append(Crop(page, panel, "panel"))
-            crops.extend(self._zoom_crops(page, panel, bubbles))
+            if panel in shrunken:
+                crops.extend(self._zoom_crops(page, panel, bubbles))
         return crops
 
     def _zoom_crops(self, page: Page, panel: BoundingBox, bubbles: list[BoundingBox]) -> list[Crop]:
