@@ -51,7 +51,7 @@ class ConversionSettings:
     mode: LayoutMode = LayoutMode.AUTO
     direction: ReadingDirection | None = None  # None = usar o metadado do livro
     dithering: Dithering = Dithering.FLOYD
-    rotation: Rotation = Rotation.CLOCKWISE
+    rotation: Rotation = Rotation.NONE  # girar quadros largos obriga a virar o aparelho
     use_local_ai: bool = False  # Ollama pesa ~4 GB de RAM; só quando pedido
     use_cloud: bool = True
     split_spreads: bool = True

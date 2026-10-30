@@ -204,8 +204,8 @@ class Cli:
         parser.add_argument("--direction", choices=[AUTO, "rtl", "ltr"], default=AUTO,
                             help="rtl = mangá, ltr = HQ, auto = metadado do livro")
         parser.add_argument("--dither", choices=[d.value for d in Dithering], default=Dithering.FLOYD.value)
-        parser.add_argument("--rotate", choices=[r.value for r in Rotation], default=Rotation.CLOCKWISE.value,
-                            help="sentido do giro dos quadros largos")
+        parser.add_argument("--rotate", choices=[r.value for r in Rotation], default=Rotation.NONE.value,
+                            help="none = sem girar (padrão); cw/ccw giram os quadros largos para ficarem maiores")
         parser.add_argument("--local-ai", dest="local_ai", action="store_true",
                             help="usar também o Ollama (pesado: ~4 GB de RAM)")
         parser.add_argument("--no-cloud", dest="cloud", action="store_false", help="não usar a Gemini")

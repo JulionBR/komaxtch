@@ -4,8 +4,7 @@ Converte mangá e HQ (EPUB, CBZ ou pasta de imagens) em **XTCH** para ler **quad
 no Xteink X3/X4 com o firmware [CrossPoint](https://github.com/crosspoint-reader/crosspoint-reader).
 
 Numa tela de 3,7" a página inteira fica ilegível. O komaxtch detecta os quadros, coloca cada um
-na ordem de leitura (direita→esquerda no mangá) e amplia para ocupar a tela, girando os quadros
-largos. Opcionalmente, também cria telas extras com zoom nos balões de fala pequenos.
+na ordem de leitura (direita→esquerda no mangá) e amplia para ocupar a tela. Opcionalmente, também cria telas extras com zoom nos balões de fala pequenos.
 
 ## Instalação
 
@@ -46,7 +45,7 @@ Cada página gera um `comparacao_pNNN.png` com as telas de cada modo lado a lado
 
 - `--direction auto|rtl|ltr`: o padrão `auto` usa o metadado do livro. Sem metadado, usa `ltr`.
 - `--device x3|x4`: X3 = 528×792 (padrão), X4 = 480×800.
-- `--rotate cw|ccw`: sentido do giro dos quadros largos.
+- `--rotate none|cw|ccw`: por padrão nada é girado, para você não ter que virar o aparelho. `cw`/`ccw` giram os quadros largos para ficarem maiores.
 - `--dither floyd|none`: `none` deixa o traço mais seco.
 - `--no-split-spreads`: não divide páginas duplas.
 

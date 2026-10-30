@@ -11,7 +11,7 @@ from komaxtch.detect.panels import OpenCvPanelDetector
 from komaxtch.devices import get_device
 from komaxtch.geometry import BoundingBox
 from komaxtch.ingest import CbzSource, EpubSource
-from komaxtch.layout import BubbleLayout, LayoutMode, PanelLayout, ScreenComposer
+from komaxtch.layout import BubbleLayout, LayoutMode, PanelLayout, Rotation, ScreenComposer
 from komaxtch.models import Crop, Page, ReadingDirection
 from komaxtch.normalize import PageNormalizer
 from komaxtch.pipeline import ConversionPipeline, ConversionSettings
@@ -44,7 +44,8 @@ def test_spreads_split_in_reading_order():
 
 
 def test_wide_panel_is_rotated_and_screen_has_device_size(manga_page):
-    composer = ScreenComposer(X3)
+    composer = ScreenComposer(X3, Rotation.CLOCKWISE)
+    assert not ScreenComposer(X3).should_rotate(BoundingBox(0, 0, 800, 300))  # padrão: não gira
     wide = BoundingBox(0, 0, 800, 300)
     tall = BoundingBox(0, 0, 300, 800)
     assert composer.should_rotate(wide) and not composer.should_rotate(tall)

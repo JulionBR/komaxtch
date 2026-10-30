@@ -33,18 +33,19 @@ class LayoutMode(Enum):
 
 
 class Rotation(Enum):
+    NONE = "none"
     CLOCKWISE = "cw"
     COUNTER_CLOCKWISE = "ccw"
 
     @property
     def degrees(self) -> int:
-        return -90 if self is Rotation.CLOCKWISE else 90
+        return {Rotation.CLOCKWISE: -90, Rotation.COUNTER_CLOCKWISE: 90}.get(self, 0)
 
 
 class ScreenComposer:
     """Encaixa um recorte na tela, girando quadros largos quando isso os deixa maiores."""
 
-    def __init__(self, device: DeviceProfile, rotation: Rotation = Rotation.CLOCKWISE) -> None:
+    def __init__(self, device: DeviceProfile, rotation: Rotation = Rotation.NONE) -> None:
         self._device = device
         self._rotation = rotation
 
@@ -55,6 +56,8 @@ class ScreenComposer:
         return self._fit(image)
 
     def should_rotate(self, box: BoundingBox) -> bool:
+        if self._rotation is Rotation.NONE:
+            return False
         upright = self.fit_scale(box.width, box.height)
         rotated = self.fit_scale(box.height, box.width)
         return rotated >= upright * ROTATION_GAIN
