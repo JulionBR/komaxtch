@@ -3,6 +3,8 @@ name = "komaxtch"
 version = "0.1.0"
 description = "Converte mangá e HQ (EPUB/CBZ) em XTCH quadro a quadro para o Xteink X3/X4 com CrossPoint"
 readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "pillow>=11.0",

@@ -133,3 +133,12 @@ No macOS, o `uv` marca a `.venv` como oculta, e o Python 3.12 ignora arquivos `.
 Isso quebra a instalação editável. Por isso, em desenvolvimento, o CLI roda com
 `PYTHONPATH=src`. O pytest já acha o código em `src/` sozinho. Depois de mudar o código,
 atualize o comando instalado com `uv tool install --force .`.
+
+## Licença
+
+Copyright (C) 2026 Julio César Da Silva
+
+O komaxtch é software livre: você pode usar, estudar, modificar e redistribuir sob os termos da
+[GNU Affero General Public License v3.0](LICENSE) ou (a seu critério) qualquer versão posterior.
+Quem distribuir uma versão modificada, ou oferecê-la como serviço pela rede, precisa publicar o
+código dela sob a mesma licença.
